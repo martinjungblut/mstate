@@ -36,32 +36,33 @@ def MState(*, logs=True):
         except KeyError:
             _logs[name] = [log_entry]
 
-    class wrapped:
-        def __init__(self, target, parent_attr_name):
-            self.target = target
-            self.parent_attr_name = parent_attr_name
-
-        def __getattr__(self, name):
-            attr = getattr(self.target, name)
-            if not callable(attr):
-                return attr
-
-            @wraps(attr)
-            def new_callable(*args, **kwargs):
-                result = attr(*args, **kwargs)
-                _refresh_logs(self.parent_attr_name)
-                return result
-
-            return new_callable
-
     class State:
         def __setattr__(self, name, value):
             _bindings[name] = value
             _refresh_logs(name)
 
         def __getattr__(self, name):
+            value = _bindings[name]
+
+            class StateWrapper:
+                def __getattr__(self, iname):
+                    iattr = getattr(value, iname)
+                    if not callable(iattr):
+                        return iattr
+
+                    @wraps(iattr)
+                    def new_callable(*args, **kwargs):
+                        result = iattr(*args, **kwargs)
+                        _refresh_logs(name)
+                        return result
+
+                    return new_callable
+
+                def __getitem__(self, *args, **kwargs):
+                    return value.__getitem__(*args, **kwargs)
+
             try:
-                return wrapped(_bindings[name], name)
+                return StateWrapper()
             except KeyError as e:
                 raise AttributeError(e)
 
@@ -110,18 +111,19 @@ if __name__ == "__main__":
     chain_a(player)
     player.print_logs()
 
-    # st = mstate(logs=True)
-    # st.name = "Martin"
-    # st.age = 30
-    # st.age = 31
-    # st.name = "Martin J. Schreiner"
-    # st.items = []
-    # st.items.append(10)
-    # st.items.append(20)
+    print("------------------")
 
-    # st.items.append(30)
-    # st.items.append(40)
-    # st.items.pop()
-    # st.items = st.items[::-1]
+    st = mstate(logs=True)
+    st.name = "Martin"
+    st.age = 30
+    st.age = 31
+    st.name = "Martin J. Schreiner"
+    st.items = []
+    st.items.append(10)
+    st.items.append(20)
 
-    # st.print_logs()
+    st.items.append(30)
+    st.items.append(40)
+    st.items.pop()
+    st.items = st.items[::-1]
+    st.print_logs()
