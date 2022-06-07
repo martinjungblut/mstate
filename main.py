@@ -1,41 +1,74 @@
 #!/usr/bin/env python3
 
+import inspect
+from dataclasses import dataclass
+from functools import wraps
+
+
+@dataclass
+class LogEntry:
+    value_repr: str
+    location: str
+
+    def __eq__(self, other):
+        return self.value_repr == other
+
 
 def MState(*, logs=True):
     _bindings, _logs = {}, {}
 
+    def _refresh_logs(name):
+        if not logs:
+            return
+
+        location = f"{name} {name}"
+        for frame in inspect.stack():
+            if f".{name}" in frame[4][0]:
+                location = "{}:{}".format(frame[1], frame[2])
+                break
+
+        value_repr = repr(_bindings[name])
+        log_entry = LogEntry(value_repr=value_repr, location=location)
+
+        try:
+            if _logs[name][-1] != value_repr:
+                _logs[name].append(log_entry)
+        except KeyError:
+            _logs[name] = [log_entry]
+
+    class wrapped:
+        def __init__(self, target, parent_attr_name):
+            self.target = target
+            self.parent_attr_name = parent_attr_name
+
+        def __getattr__(self, name):
+            attr = getattr(self.target, name)
+            if not callable(attr):
+                return attr
+
+            @wraps(attr)
+            def new_callable(*args, **kwargs):
+                result = attr(*args, **kwargs)
+                _refresh_logs(self.parent_attr_name)
+                return result
+
+            return new_callable
+
     class State:
         def __setattr__(self, name, value):
             _bindings[name] = value
-            self._refresh_logs()
+            _refresh_logs(name)
 
         def __getattr__(self, name):
-            self._refresh_logs()
-
             try:
-                return _bindings[name]
+                return wrapped(_bindings[name], name)
             except KeyError as e:
                 raise AttributeError(e)
 
-        def _refresh_logs(self):
-            if not logs:
-                return
-
-            for name, value in _bindings.items():
-                value_repr = repr(value)
-
-                try:
-                    if _logs[name][-1] != value_repr:
-                        _logs[name].append(value_repr)
-                except KeyError:
-                    _logs[name] = [value_repr]
-
         def print_logs(self):
-            self._refresh_logs()
-
-            for name, values in _logs.items():
-                for value in values:
-                    print(name, value)
+            for name, entries in _logs.items():
+                for entry in entries:
+                    print(name, entry.value_repr, entry.location)
 
     return State
 
@@ -52,13 +85,30 @@ class Player(MState()):
         self.items = []
 
 
+def chain_a(p):
+    chain_b(p)
+
+
+def chain_b(p):
+    chain_c(p)
+
+
+def chain_c(p):
+    p.age = 50
+    p.website = "http://debian.org"
+
+
 if __name__ == "__main__":
     player = Player("Martin", 30, "Human")
     player.name = "Martin J. Schreiner"
     player.age = 31
-    player.items.append("Sword")
 
-    breakpoint()
+    player.items.append("Sword")
+    player.items.append("Shield")
+    player.items.append("Helmet")
+
+    chain_a(player)
+    player.print_logs()
 
     # st = mstate(logs=True)
     # st.name = "Martin"
@@ -68,6 +118,7 @@ if __name__ == "__main__":
     # st.items = []
     # st.items.append(10)
     # st.items.append(20)
+
     # st.items.append(30)
     # st.items.append(40)
     # st.items.pop()
