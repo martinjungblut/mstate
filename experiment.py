@@ -6,11 +6,11 @@ from functools import wraps
 def decorate(target):
     target_type = type(target)
 
-    logs = []
+    _logs = []
 
     def logs_add_entry():
         entry = f"target: {repr(target)}"
-        logs.append(entry)
+        _logs.append(entry)
 
     def rebind(attribute):
         method = getattr(target_type, attribute)
@@ -36,8 +36,14 @@ def decorate(target):
         def __init__(self):
             pass
 
+        def logs(self):
+            for log in _logs:
+                yield log
+
     for attribute in dir(target_type):
-        if attribute not in ("__class__", "__init__"):
+        # __getattribute__ is screwing up with subclass method access
+        # needs a custom implementation
+        if attribute not in ("__class__", "__init__", "__getattribute__"):
             setattr(Rebinder, attribute, rebind(attribute))
 
     return Rebinder()
@@ -49,14 +55,20 @@ nelements.append(10)
 nelements.append(20)
 nelements.append(666)
 
-print(f"len: {len(nelements)}")
-print(f"copy: {nelements}")
-print(f"original: {elements}")
-print("repr copy: ", repr(nelements))
-print("repr original: ", repr(elements))
+nelements.reverse()
+nelements[1] = 50
 
-print("Iteration check...")
-for i in nelements:
-    print(f"i: {i}")
+# print(f"len: {len(nelements)}")
+# print(f"copy: {nelements}")
+# print(f"original: {elements}")
+# print("repr copy: ", repr(nelements))
+# print("repr original: ", repr(elements))
 
-print("is instance of the same type?", isinstance(nelements, type(elements)))
+# print("Iteration check...")
+# for i in nelements:
+#     print(f"i: {i}")
+
+# print("is instance of the same type?", isinstance(nelements, type(elements)))
+
+for log in nelements.logs():
+    print(log)
