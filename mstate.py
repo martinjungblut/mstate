@@ -47,28 +47,3 @@ def decorate(target):
             setattr(Rebinder, attribute, rebind(attribute))
 
     return Rebinder()
-
-
-elements = [5]
-nelements = decorate(elements)
-nelements.append(10)
-nelements.append(20)
-nelements.append(666)
-
-nelements.reverse()
-nelements[1] = 50
-
-# print(f"len: {len(nelements)}")
-# print(f"copy: {nelements}")
-# print(f"original: {elements}")
-# print("repr copy: ", repr(nelements))
-# print("repr original: ", repr(elements))
-
-# print("Iteration check...")
-# for i in nelements:
-#     print(f"i: {i}")
-
-# print("is instance of the same type?", isinstance(nelements, type(elements)))
-
-for log in nelements.logs():
-    print(log)
