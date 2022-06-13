@@ -57,3 +57,39 @@ class TestWatchList(unittest.TestCase):
         self.watched.append(20)
 
         assert [i for i in self.watched] == [10, 20]
+
+
+class TestWatchDict(unittest.TestCase):
+    def setUp(self):
+        self.original = {}
+        self.watched = watch(self.original)
+
+    def test_repr(self):
+        self.original["name"] = "john"
+        self.watched["age"] = 35
+
+        assert repr(self.original) == repr(self.watched)
+
+    def test_length(self):
+        assert len(self.original) == len(self.watched)
+
+        self.original["name"] = "john"
+        self.watched["age"] = 35
+
+        assert len(self.original) == len(self.watched) == 2
+
+    def test_setitem_getitem(self):
+        self.original["name"] = "john"
+        self.watched["age"] = 35
+
+        assert self.watched["name"] == "john"
+        assert self.original["age"] == 35
+
+    def test_iteration(self):
+        self.original["name"] = "john"
+        self.watched["age"] = 35
+
+        {key: value for key, value in self.watched.items()} == {
+            "name": "john",
+            "age": 35,
+        }
