@@ -3,7 +3,7 @@
 from functools import wraps
 
 
-def decorate(target):
+def watch(target):
     target_type = type(target)
 
     _logs = []
@@ -32,7 +32,7 @@ def decorate(target):
         else:
             return new_method.__get__(target, target_type)
 
-    class Rebinder(target_type):
+    class Watcher(target_type):
         def __init__(self):
             pass
 
@@ -41,9 +41,8 @@ def decorate(target):
                 yield log
 
     for attribute in dir(target_type):
-        # __getattribute__ is screwing up with subclass method access
-        # needs a custom implementation
+        # __getattribute__ impacts subclass method access
         if attribute not in ("__class__", "__init__", "__getattribute__"):
-            setattr(Rebinder, attribute, rebind(attribute))
+            setattr(Watcher, attribute, rebind(attribute))
 
-    return Rebinder()
+    return Watcher()
