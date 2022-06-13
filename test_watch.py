@@ -5,18 +5,7 @@ from random import randint
 from mstate import watch
 
 
-class TestSubtyping(unittest.TestCase):
-    types = [list, dict, set, tuple, int, float, Decimal]
-
-    @classmethod
-    def test_watched_objects_are_instances_of_original_types(cls):
-        for callable in cls.types:
-            original = callable()
-            watched = watch(original)
-            assert isinstance(watched, type(original))
-
-
-class TestWatchList(unittest.TestCase):
+class TestList(unittest.TestCase):
     def setUp(self):
         self.original = []
         self.watched = watch(self.original)
@@ -60,7 +49,7 @@ class TestWatchList(unittest.TestCase):
         assert [i for i in self.watched] == [10, 20]
 
 
-class TestWatchDict(unittest.TestCase):
+class TestDict(unittest.TestCase):
     def setUp(self):
         self.original = {}
         self.watched = watch(self.original)
@@ -94,6 +83,17 @@ class TestWatchDict(unittest.TestCase):
             "name": "john",
             "age": 35,
         }
+
+
+class TestSubtyping(unittest.TestCase):
+    types = [list, dict, set, tuple, int, float, Decimal]
+
+    @classmethod
+    def test_watched_objects_are_instances_of_original_types(cls):
+        for callable in cls.types:
+            original = callable()
+            watched = watch(original)
+            assert isinstance(watched, type(original))
 
 
 class TestClassMethods(unittest.TestCase):
