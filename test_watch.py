@@ -5,7 +5,7 @@ from random import randint
 from mstate import watch
 
 
-class TestList(unittest.TestCase):
+class ListTestCase(unittest.TestCase):
     def setUp(self):
         self.original = []
         self.watched = watch(self.original)
@@ -49,7 +49,7 @@ class TestList(unittest.TestCase):
         assert [i for i in self.watched] == [10, 20]
 
 
-class TestDict(unittest.TestCase):
+class DictTestCase(unittest.TestCase):
     def setUp(self):
         self.original = {}
         self.watched = watch(self.original)
@@ -85,7 +85,7 @@ class TestDict(unittest.TestCase):
         }
 
 
-class TestSubtyping(unittest.TestCase):
+class SubtypingTestCase(unittest.TestCase):
     types = [list, dict, set, tuple, int, float, Decimal]
 
     @classmethod
@@ -96,7 +96,7 @@ class TestSubtyping(unittest.TestCase):
             assert isinstance(watched, type(original))
 
 
-class TestClassMethods(unittest.TestCase):
+class ClassMethodsTestCase(unittest.TestCase):
     class C:
         state = []
 
