@@ -1,14 +1,18 @@
 from functools import wraps
 
 
-def watch(target):
+def watch(target, *, logs=None):
     target_type = type(target)
 
-    _logs = []
+    if logs is None:
+        logs = []
 
-    def logs_add_entry():
-        entry = f"new state: {repr(target)}"
-        _logs.append(entry)
+    def logs_add_entry(*, name):
+        entry = {
+            "name": name,
+            "value_after": repr(target),
+        }
+        logs.append(entry)
 
     def rebind(attribute):
         method = getattr(target_type, attribute)
@@ -20,13 +24,13 @@ def watch(target):
         @wraps(method)
         def new_method_unbound(*args, **kwargs):
             result = method(*args, **kwargs)
-            logs_add_entry()
+            logs_add_entry(name=method.__name__)
             return result
 
         @wraps(method)
         def new_method_bound(_, *args, **kwargs):
             result = method(*args, **kwargs)
-            logs_add_entry()
+            logs_add_entry(name=method.__name__)
             return result
 
         # in case of static or class methods
@@ -40,8 +44,11 @@ def watch(target):
         def __init__(self):
             pass
 
-        def logs(self):
-            for log in _logs:
+        def __getattr__(self, name):
+            return target.__getattribute__(name)
+
+        def ilogs(self):
+            for log in logs:
                 yield log
 
     for attribute in dir(target_type):
