@@ -79,7 +79,7 @@ class DictTestCase(unittest.TestCase):
         self.original["name"] = "john"
         self.watched["age"] = 35
 
-        {key: value for key, value in self.watched.items()} == {
+        assert {key: value for key, value in self.watched.items()} == {
             "name": "john",
             "age": 35,
         }
