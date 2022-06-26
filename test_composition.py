@@ -11,7 +11,7 @@ class Context:
         return repr(self.__dict__)
 
 
-class InheritanceTestCase(unittest.TestCase):
+class CompositionTestCase(unittest.TestCase):
     def setUp(self):
         self.logs = []
         self.instance = watch(Context(self.logs), logs=self.logs)
