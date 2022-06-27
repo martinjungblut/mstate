@@ -1,3 +1,4 @@
+import inspect
 from functools import wraps
 
 
@@ -8,10 +9,22 @@ def watch(target, *, logs=None):
         logs = []
 
     def logs_add_entry(*, name):
+        filename, linenumber = None, None
+
+        for frame in inspect.stack():
+            code_context = frame[4]
+            if code_context and f".{name}" in code_context[0]:
+                filename = frame[1]
+                linenumber = frame[2]
+                break
+
         entry = {
             "name": name,
             "value_after": repr(target),
+            "filename": filename,
+            "linenumber": linenumber,
         }
+
         logs.append(entry)
 
     def rebind(attribute):
