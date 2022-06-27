@@ -35,13 +35,13 @@ def watch(target, *, logs=None):
             return method
 
         @wraps(method)
-        def new_method_unbound(*args, **kwargs):
+        def new_method_bound(_, *args, **kwargs):
             result = method(*args, **kwargs)
             logs_add_entry(name=method.__name__)
             return result
 
         @wraps(method)
-        def new_method_bound(_, *args, **kwargs):
+        def new_method_unbound(*args, **kwargs):
             result = method(*args, **kwargs)
             logs_add_entry(name=method.__name__)
             return result
@@ -71,9 +71,6 @@ def watch(target, *, logs=None):
         # __new__ is responsible for creating the new Watcher object
         # __getattribute__ impacts subclass method access
         if attribute not in ("__class__", "__dict__", "__init__", "__new__", "__getattribute__"):
-            try:
-                setattr(Watcher, attribute, rebind(attribute))
-            except AttributeError as e:
-                print(e)
+            setattr(Watcher, attribute, rebind(attribute))
 
     return Watcher()
