@@ -19,6 +19,7 @@ class CompositionTestCase(unittest.TestCase):
     def test_nested_method_call(self):
         self.instance.items.append(15)
         self.instance.items.append(25)
+
         assert len([*self.instance.ilogs()]) == 2
         assert self.logs[0]["name"] == "append"
         assert self.logs[0]["value_after"] == "[15]"
