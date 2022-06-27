@@ -9,14 +9,18 @@ def watch(target, *, logs=None):
         logs = []
 
     def logs_add_entry(*, name):
-        filename, linenumber = None, None
+        context_contains_reference = lambda *, context: f".{name}" in context[0]
+        frames_with_matching_contexts = filter(
+            lambda frameinfo: context_contains_reference(context=frameinfo[4]),
+            inspect.stack(),
+        )
 
-        for frame in inspect.stack():
-            code_context = frame[4]
-            if code_context and f".{name}" in code_context[0]:
-                filename = frame[1]
-                linenumber = frame[2]
-                break
+        try:
+            frame = next(frames_with_matching_contexts)
+            filename = frame[1]
+            linenumber = frame[2]
+        except StopIteration:
+            filename, linenumber = None, None
 
         entry = {
             "name": name,
@@ -64,13 +68,19 @@ def watch(target, *, logs=None):
             for log in logs:
                 yield log
 
+    # __class__ must be a class, not a rebound method
+    # __dict__ isn't writable for 'type' objects
+    # __init__ is already being implemented on Watcher
+    # __new__ is responsible for creating the new Watcher object
+    # __getattribute__ impacts subclass method access
     for attribute in dir(target_type):
-        # __class__ must be a class, not a rebound method
-        # __dict__ isn't writable for 'type' objects
-        # __init__ is already being implemented on Watcher
-        # __new__ is responsible for creating the new Watcher object
-        # __getattribute__ impacts subclass method access
-        if attribute not in ("__class__", "__dict__", "__init__", "__new__", "__getattribute__"):
+        if attribute not in (
+            "__class__",
+            "__dict__",
+            "__init__",
+            "__new__",
+            "__getattribute__",
+        ):
             setattr(Watcher, attribute, rebind(attribute))
 
     return Watcher()
