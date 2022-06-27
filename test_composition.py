@@ -21,6 +21,8 @@ class CompositionTestCase(unittest.TestCase):
         self.instance.items.append(25)
 
         assert len([*self.instance.ilogs()]) == 2
+        assert len(self.logs) == 2
+
         assert self.logs[0]["name"] == "append"
         assert self.logs[0]["value_after"] == "[15]"
         assert self.logs[1]["name"] == "append"
@@ -28,3 +30,4 @@ class CompositionTestCase(unittest.TestCase):
 
         self.instance.website = "http://debian.org"
         assert len([*self.instance.ilogs()]) == 4
+        assert len(self.logs) == 4
