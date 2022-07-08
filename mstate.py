@@ -2,14 +2,14 @@ import inspect
 from functools import wraps
 
 
-def watch(target, *, logs=None):
-    target_type = type(target)
-
+def watch(target_type, *, logs=None):
     if logs is None:
         logs = []
 
-    def logs_add_entry(*, name):
-        context_contains_reference = lambda *, context: f".{name}" in context[0]
+    def logs_add_entry(*, name, target, args, kwargs):
+        context_contains_reference = (
+            lambda *, context: context is not None and f".{name}" in context[0]
+        )
         frames_with_matching_contexts = filter(
             lambda frameinfo: context_contains_reference(context=frameinfo[4]),
             inspect.stack(),
@@ -25,6 +25,8 @@ def watch(target, *, logs=None):
         entry = {
             "name": name,
             "value_after": repr(target),
+            "args": [repr(arg) for arg in args],
+            "kwargs": {key: repr(value) for key, value in kwargs.items()},
             "filename": filename,
             "linenumber": linenumber,
         }
@@ -39,31 +41,31 @@ def watch(target, *, logs=None):
             return method
 
         @wraps(method)
-        def new_method_bound(_, *args, **kwargs):
+        def new_method_bound(*args, **kwargs):
+            target = args[0]
             result = method(*args, **kwargs)
-            logs_add_entry(name=method.__name__)
+            logs_add_entry(
+                name=method.__name__, target=target, args=args[1:], kwargs=kwargs
+            )
             return result
 
         @wraps(method)
-        def new_method_unbound(*args, **kwargs):
+        def new_method_unbound(cls, *args, **kwargs):
+            target = cls
             result = method(*args, **kwargs)
-            logs_add_entry(name=method.__name__)
+            logs_add_entry(
+                name=method.__name__, target=target, args=args, kwargs=kwargs
+            )
             return result
 
         # in case of static or class methods
-        is_bound = getattr(method, "__self__", None) is not None
-        if is_bound:
-            return new_method_bound
+        is_unbound = getattr(method, "__self__", None) is not None
+        if is_unbound:
+            return new_method_unbound
         else:
-            return new_method_unbound.__get__(target, target_type)
+            return new_method_bound
 
     class Watcher(target_type):
-        def __init__(self):
-            pass
-
-        def __getattr__(self, name):
-            return target.__getattribute__(name)
-
         def ilogs(self):
             for log in logs:
                 yield log
@@ -77,10 +79,13 @@ def watch(target, *, logs=None):
         if attribute not in (
             "__class__",
             "__dict__",
-            "__init__",
             "__new__",
             "__getattribute__",
+            "__repr__",
         ):
-            setattr(Watcher, attribute, rebind(attribute))
+            try:
+                setattr(Watcher, attribute, rebind(attribute))
+            except Exception as exc:
+                print(f"Error when setting attribute '{attribute}': {type(exc)} {exc}")
 
-    return Watcher()
+    return Watcher
