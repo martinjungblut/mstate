@@ -54,3 +54,18 @@ class BasicTestCase(unittest.TestCase):
         print("Inventory logs")
         for log in logs:
             print(log)
+
+
+global_inventory = Inventory()
+
+
+class GlobalInstanceTestCase(unittest.TestCase):
+    def test(self):
+        global_inventory.append("Rune")
+        global_inventory.append("Mug")
+
+        logs = [*global_inventory.ilogs()]
+        assert len(logs) > 0
+        print("Global inventory logs")
+        for log in logs:
+            print(log)
