@@ -2,9 +2,8 @@ import inspect
 from functools import wraps
 
 
-def watch(target_type, *, logs=None):
-    if logs is None:
-        logs = {}
+def watch(target_type):
+    logs = {}
 
     def logs_add_entry(*, name, target, args, kwargs):
         try:
