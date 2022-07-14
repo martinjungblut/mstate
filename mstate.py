@@ -7,20 +7,13 @@ def watch(target_type, *, logs=None):
         logs = []
 
     def logs_add_entry(*, name, target, args, kwargs):
-        context_contains_reference = (
-            lambda *, context: context is not None and f".{name}" in context[0]
-        )
-        frames_with_matching_contexts = filter(
-            lambda frameinfo: context_contains_reference(context=frameinfo[4]),
-            inspect.stack(),
-        )
-
         try:
-            frame = next(frames_with_matching_contexts)
-            filename = frame[1]
-            linenumber = frame[2]
-        except StopIteration:
+            frameinfo = inspect.stack()[2]
+        except IndexError:
             filename, linenumber = None, None
+        else:
+            filename = frameinfo[1]
+            linenumber = frameinfo[2]
 
         entry = {
             "name": name,
@@ -72,9 +65,9 @@ def watch(target_type, *, logs=None):
 
     # __class__ must be a class, not a rebound method
     # __dict__ isn't writable for 'type' objects
-    # __init__ is already being implemented on Watcher
     # __new__ is responsible for creating the new Watcher object
     # __getattribute__ impacts subclass method access
+    # __repr__ is the magic method implemented to expose state transitions
     for attribute in dir(target_type):
         if attribute not in (
             "__class__",
