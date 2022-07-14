@@ -4,7 +4,7 @@ from functools import wraps
 
 def watch(target_type, *, logs=None):
     if logs is None:
-        logs = []
+        logs = {}
 
     def logs_add_entry(*, name, target, args, kwargs):
         try:
@@ -24,7 +24,10 @@ def watch(target_type, *, logs=None):
             "linenumber": linenumber,
         }
 
-        logs.append(entry)
+        try:
+            logs[id(target)].append(entry)
+        except Exception:
+            logs[id(target)] = [entry]
 
     def rebind(attribute):
         method = getattr(target_type, attribute)
@@ -60,7 +63,7 @@ def watch(target_type, *, logs=None):
 
     class Watcher(target_type):
         def ilogs(self):
-            for log in logs:
+            for log in logs[id(self)]:
                 yield log
 
     # __class__ must be a class, not a rebound method
