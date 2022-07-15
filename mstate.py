@@ -9,10 +9,11 @@ def watch(target_type):
         try:
             frameinfo = inspect.stack()[2]
         except IndexError:
-            filename, linenumber = None, None
+            filename, call_at, context_at = None, None, None
         else:
-            filename = frameinfo[1]
-            linenumber = frameinfo[2]
+            filename = frameinfo.frame.f_code.co_filename
+            call_at = frameinfo.frame.f_lineno
+            context_at = frameinfo.frame.f_code.co_firstlineno
 
         if name == "__setattr__":
             name = "{}=".format(args[0])
@@ -24,7 +25,8 @@ def watch(target_type):
             "args": [repr(arg) for arg in args],
             "kwargs": {repr(key): repr(value) for key, value in kwargs.items()},
             "filename": filename,
-            "linenumber": linenumber,
+            "call_at": call_at,
+            "context_at": context_at,
         }
 
         try:
@@ -65,7 +67,7 @@ def watch(target_type):
             )
             return result
 
-        # in case of static or class methods
+        # in case of class methods
         is_unbound = getattr(method, "__self__", None) is not None
         if is_unbound:
             return new_method_unbound
