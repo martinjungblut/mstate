@@ -103,9 +103,6 @@ def watch(target_type):
             "instance_watch",
             "class_watch",
         ):
-            try:
-                setattr(Watcher, attribute, rebind(attribute))
-            except Exception as exc:
-                print(f"Error when setting attribute '{attribute}': {type(exc)} {exc}")
+            setattr(Watcher, attribute, rebind(attribute))
 
     return Watcher
