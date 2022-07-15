@@ -5,20 +5,24 @@ from mstate import watch
 
 @watch
 class Inventory(list):
-    pass
+    def instance_watch(self):
+        return repr(self)
 
 
 @watch
 class Player:
     class_inventory = Inventory()
 
-    def __init__(self):
+    def __init__(self, name):
         self.inventory = Inventory()
+        self.name = name
 
-    def __repr__(self):
-        return "inventory={}, class_inventory={}".format(
-            repr(self.inventory), repr(self.class_inventory)
-        )
+    def instance_watch(self):
+        return repr(self.__dict__)
+
+    @classmethod
+    def class_watch(cls):
+        return repr({"class_inventory": cls.class_inventory})
 
     def pick(self, item):
         self.inventory.append(item)
@@ -33,7 +37,7 @@ class Player:
 
 class BasicTestCase(unittest.TestCase):
     def setUp(self):
-        self.player = Player()
+        self.player = Player("Jack")
 
     def test(self):
         self.player.pick("Sword")
@@ -57,6 +61,7 @@ class BasicTestCase(unittest.TestCase):
 
 
 global_inventory = Inventory()
+global_inventory.append("Amulet")
 
 
 class GlobalInstanceTestCase(unittest.TestCase):

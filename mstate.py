@@ -5,7 +5,7 @@ from functools import wraps
 def watch(target_type):
     logs = {}
 
-    def logs_add_entry(*, name, target, args, kwargs):
+    def logs_add_entry(*, name, state, target, args, kwargs):
         try:
             frameinfo = inspect.stack()[2]
         except IndexError:
@@ -14,11 +14,15 @@ def watch(target_type):
             filename = frameinfo[1]
             linenumber = frameinfo[2]
 
+        if name == "__setattr__":
+            name = "{}=".format(args[0])
+            args = [args[1]]
+
         entry = {
             "name": name,
-            "value_after": repr(target),
+            "state": state,
             "args": [repr(arg) for arg in args],
-            "kwargs": {key: repr(value) for key, value in kwargs.items()},
+            "kwargs": {repr(key): repr(value) for key, value in kwargs.items()},
             "filename": filename,
             "linenumber": linenumber,
         }
@@ -40,7 +44,11 @@ def watch(target_type):
             target = args[0]
             result = method(*args, **kwargs)
             logs_add_entry(
-                name=method.__name__, target=target, args=args[1:], kwargs=kwargs
+                name=method.__name__,
+                state=target.instance_watch(),
+                target=target,
+                args=args[1:],
+                kwargs=kwargs,
             )
             return result
 
@@ -49,7 +57,11 @@ def watch(target_type):
             target = cls
             result = method(*args, **kwargs)
             logs_add_entry(
-                name=method.__name__, target=target, args=args, kwargs=kwargs
+                name=method.__name__,
+                state=target.class_watch(),
+                target=target,
+                args=args,
+                kwargs=kwargs,
             )
             return result
 
@@ -60,10 +72,21 @@ def watch(target_type):
         else:
             return new_method_bound
 
-    class Watcher(target_type):
+    class WatcherProtocol:
+        def instance_watch(self):
+            raise NotImplementedError
+
+        @classmethod
+        def class_watch(cls):
+            raise NotImplementedError
+
+    class Watcher(target_type, WatcherProtocol):
         def ilogs(self):
-            for log in logs[id(self)]:
-                yield log
+            try:
+                for log in logs[id(self)]:
+                    yield log
+            except KeyError:
+                pass
 
     # __class__ must be a class, not a rebound method
     # __dict__ isn't writable for 'type' objects
@@ -77,6 +100,8 @@ def watch(target_type):
             "__new__",
             "__getattribute__",
             "__repr__",
+            "instance_watch",
+            "class_watch",
         ):
             try:
                 setattr(Watcher, attribute, rebind(attribute))
