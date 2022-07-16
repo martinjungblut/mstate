@@ -20,13 +20,13 @@ def watch(target_type):
             args = [args[1]]
 
         entry = {
+            "context_at": context_at,
             "name": name,
             "state": state,
             "args": [repr(arg) for arg in args],
             "kwargs": {repr(key): repr(value) for key, value in kwargs.items()},
             "filename": filename,
             "call_at": call_at,
-            "context_at": context_at,
         }
 
         try:
