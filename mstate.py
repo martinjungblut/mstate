@@ -21,18 +21,20 @@ def watch(target_type):
 
         entry = {
             "context_at": context_at,
-            "name": name,
             "state": state,
+            "type": target_type,
+            "name": name,
             "args": [repr(arg) for arg in args],
             "kwargs": {repr(key): repr(value) for key, value in kwargs.items()},
             "filename": filename,
             "call_at": call_at,
         }
 
+        target_id = id(target)
         try:
-            logs[id(target)].append(entry)
+            logs[target_id].append(entry)
         except Exception:
-            logs[id(target)] = [entry]
+            logs[target_id] = [entry]
 
     def rebind(attribute):
         method = getattr(target_type, attribute)
@@ -89,6 +91,10 @@ def watch(target_type):
                     yield log
             except KeyError:
                 pass
+
+        def shared_logs(self):
+            for key, value in logs.items():
+                yield key, value
 
     # __class__ must be a class, not a rebound method
     # __dict__ isn't writable for 'type' objects
