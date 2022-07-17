@@ -1,10 +1,11 @@
-import unittest
+import pytest
 
 from tests.common import Inventory, Player
 
 
-class BasicTestCase(unittest.TestCase):
-    def setUp(self):
+class TestBasic:
+    @pytest.fixture(autouse=True)
+    def setup(self):
         self.player = Player("Jack")
 
     def test(self):
@@ -35,7 +36,7 @@ global_inventory = Inventory()
 global_inventory.append("Amulet")
 
 
-class GlobalInstanceTestCase(unittest.TestCase):
+class TestGlobalInstance:
     def test(self):
         global_inventory.append("Rune")
         global_inventory.append("Mug")
