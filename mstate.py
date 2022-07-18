@@ -2,6 +2,15 @@ import inspect
 from functools import wraps
 
 
+def _method_is(type_a, method, type_b):
+    try:
+        reference = type_a.__dict__[method.__name__]
+    except KeyError:
+        return False
+    else:
+        return isinstance(reference, type_b)
+
+
 def watch(target_type):
     logs = {}
 
@@ -39,12 +48,8 @@ def watch(target_type):
     def rebind(attribute):
         method = getattr(target_type, attribute)
 
-        # not a method, just a regular attribute
-        if not callable(method):
-            return method
-
         @wraps(method)
-        def new_method_bound(*args, **kwargs):
+        def new_method(*args, **kwargs):
             target = args[0]
             result = method(*args, **kwargs)
             logs_add_entry(
@@ -57,24 +62,23 @@ def watch(target_type):
             return result
 
         @wraps(method)
-        def new_method_unbound(cls, *args, **kwargs):
-            target = cls
+        def new_classmethod(cls, *args, **kwargs):
             result = method(*args, **kwargs)
             logs_add_entry(
                 name=method.__name__,
-                state=target.class_watch(),
-                target=target,
+                state=cls.class_watch(),
+                target=cls,
                 args=args,
                 kwargs=kwargs,
             )
             return result
 
-        # in case of class methods
-        is_unbound = getattr(method, "__self__", None) is not None
-        if is_unbound:
-            return new_method_unbound
+        if not callable(method) or _method_is(target_type, method, staticmethod):
+            return method
+        elif _method_is(target_type, method, classmethod):
+            return new_classmethod
         else:
-            return new_method_bound
+            return new_method
 
     class WatcherProtocol:
         def instance_watch(self):
@@ -99,8 +103,9 @@ def watch(target_type):
     # __class__ must be a class, not a rebound method
     # __dict__ isn't writable for 'type' objects
     # __new__ is responsible for creating the new Watcher object
-    # __getattribute__ impacts subclass method access
-    # __repr__ is the magic method implemented to expose state transitions
+    # __getattribute__ causes a RecursionError if rebound
+    # __repr__ causes a RecursionError if rebound
+    # instance_watch and class_watch are part of the protocol
     for attribute in dir(target_type):
         if attribute not in (
             "__class__",
