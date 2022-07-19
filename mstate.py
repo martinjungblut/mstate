@@ -45,15 +45,15 @@ def watch(target_type):
         except Exception:
             logs[target_id] = [entry]
 
-    def rebind(attribute):
-        method = getattr(target_type, attribute)
+    def rebind(attribute_name):
+        attribute = getattr(target_type, attribute_name)
 
-        @wraps(method)
+        @wraps(attribute)
         def new_method(*args, **kwargs):
             target = args[0]
-            result = method(*args, **kwargs)
+            result = attribute(*args, **kwargs)
             logs_add_entry(
-                name=method.__name__,
+                name=attribute.__name__,
                 state=target.instance_watch(),
                 target=target,
                 args=args[1:],
@@ -61,11 +61,11 @@ def watch(target_type):
             )
             return result
 
-        @wraps(method)
+        @wraps(attribute)
         def new_classmethod(cls, *args, **kwargs):
-            result = method(*args, **kwargs)
+            result = attribute(*args, **kwargs)
             logs_add_entry(
-                name=method.__name__,
+                name=attribute.__name__,
                 state=cls.class_watch(),
                 target=cls,
                 args=args,
@@ -73,9 +73,11 @@ def watch(target_type):
             )
             return result
 
-        if not callable(method) or _method_is(target_type, method, staticmethod):
-            return method
-        elif _method_is(target_type, method, classmethod):
+        if not callable(attribute):
+            return attribute
+        elif _method_is(target_type, attribute, staticmethod):
+            return
+        elif _method_is(target_type, attribute, classmethod):
             return new_classmethod
         else:
             return new_method
@@ -116,6 +118,8 @@ def watch(target_type):
             "instance_watch",
             "class_watch",
         ):
-            setattr(Watcher, attribute, rebind(attribute))
+            new_attribute = rebind(attribute)
+            if new_attribute is not None:
+                setattr(Watcher, attribute, new_attribute)
 
     return Watcher
